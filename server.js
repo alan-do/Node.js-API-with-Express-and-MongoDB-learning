@@ -1,49 +1,40 @@
-const http = require("http");
-const { stat } = require("fs");
-const todos = [
-  { id: 1, text: "todo 1" },
-  { id: 2, text: "todo 2" },
-  { id: 3, text: "todo 3" },
-];
-const server = http.createServer((req, res) => {
-  const { method, url } = req;
-  let body = [];
+const express = require('express');
+const dotenv = require('dotenv');
+const morgan = require('morgan');
+const connectDB = require('./config/db');
+const colors = require('colors')
 
-  req
-    .on("data", (chunk) => {
-      body.push(chunk);
-    })
-    .on("end", () => {
-      body = Buffer.concat(body).toString();
+//load env vars
+dotenv.config({ path: './config/config.env' });
 
-      let status = 404;
-      const response = {
-        success: false,
-        data: null,
-      };
-      if (method === "GET" && url === "/todos") {
-        status = 200;
-        response.success = true;
-        response.data = todos;
-      } else if (method === "POST" && url === "/todos") {
-        const { id, text } = JSON.parse(body);
-        if (!id || !text) {
-          status = 400;
-          response.error ="missing"
-        } else {
-          todos.push({ id, text });
-          status = 201;
-          response.success = true;
-          response.data = todos;
-        }
-      }
-      res.writeHead(status, {
-        "Content-type": "application/json",
-        "x-Powered-By": "Node.js",
-      });
+//Connect to DB
+connectDB();
 
-      res.end(JSON.stringify(response));
-    });
+
+const app = express();
+//Body parser
+app.use(express.json());
+
+//route
+const bootcamps = require('./routes/bootcamps');
+
+//Dev loggimg middleware
+if (process.env.NODE_ENV === "development") {
+    app.use(morgan('dev'));
+}
+
+//mount routers
+app.use('/api/v1/bootcamps', bootcamps)
+
+
+const PORT = process.env.PORT || 5000;
+
+const server = app.listen(
+    PORT,
+    console.log(`server running in ${process.env.NODE_ENV} mode on port ${PORT}`.yellow.bold));
+//Handle Unhandle promise rejections
+process.on('unhandledRejection', (err, promise) => {
+    console.log(`Error: ${err.message}`);
+    //close server & exit
+    server.close(() => process.exit(1));
 });
-const PORT = 5000;
-server.listen(PORT, () => console.log(`Port ${PORT}`));
