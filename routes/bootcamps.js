@@ -1,7 +1,7 @@
 const express = require('express');
 const {
-    getBootcamp,
     getBootcamps,
+    getBootcamp,
     createBootcamp,
     updateBootcamp,
     deleteBootcamp
